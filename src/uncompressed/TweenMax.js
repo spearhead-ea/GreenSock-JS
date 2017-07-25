@@ -6221,6 +6221,22 @@ if (_gsScope._gsDefine) { _gsScope._gsQueue.pop()(); } //necessary in case Tween
  		var _reqAnimFrame = window.requestAnimationFrame,
 			_cancelAnimFrame = window.cancelAnimationFrame,
 			_getTime = Date.now || function() {return new Date().getTime();},
+			_lastUpdate = _getTime(),
+			_monotonicTime = (function() {
+				var firstTime = 0, lastTime = 0;
+				return function(rafTime) {
+					if (rafTime === undefined) {
+						return _getTime();
+					} else if (rafTime === true || rafTime === 2) {
+						rafTime = lastTime - firstTime + 33;
+					}
+					rafTime = Math.floor(rafTime);
+					if (!firstTime) {
+						firstTime = _getTime() - rafTime;
+					}
+					return (lastTime = firstTime + rafTime);
+				};
+			})(),
 			_lastUpdate = _getTime();
 
 		//now try to determine the requestAnimationFrame and cancelAnimationFrame functions and if none are found, we'll use a setTimeout()/clearTimeout() polyfill.
@@ -6240,7 +6256,7 @@ if (_gsScope._gsDefine) { _gsScope._gsQueue.pop()(); } //necessary in case Tween
 				_tickWord = "tick", //helps reduce gc burden
 				_fps, _req, _id, _gap, _nextTime,
 				_tick = function(manual) {
-					var elapsed = _getTime() - _lastUpdate,
+					var elapsed = _monotonicTime(manual) - _lastUpdate,
 						overlap, dispatch;
 					if (elapsed > _lagThreshold) {
 						_startTime += elapsed - _adjustedLag;
